@@ -1,0 +1,630 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>AS3 Voice Applications</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: intro on top, then an assistant screen beside a small notes panel; stacks on narrow screens. */
+:root {
+  --bg: #edf1f4;
+  --surface: #ffffff;
+  --fg: #14202b;
+  --muted: #566574;
+  --line: #cdd7df;
+  --accent: #0b6e75;
+  --accent-ink: #ffffff;
+  --accent-soft: #d9eef0;
+  --gap-bg: #fff1cf;
+  --gap-fg: #5e4100;
+  --gap-line: #d99f00;
+  --ok: #1d7a3b;
+  --warn-bg: #fbe3dc;
+  --warn-fg: #7a2814;
+  --warn-line: #c04824;
+  --rec: #c23b2a;
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --font-data: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1820;
+    --surface: #16232d;
+    --fg: #e8eef3;
+    --muted: #9fb0bd;
+    --line: #2b3b48;
+    --accent: #52c4cc;
+    --accent-ink: #04262a;
+    --accent-soft: #14383d;
+    --gap-bg: #3a2e0c;
+    --gap-fg: #ffd777;
+    --gap-line: #c99a1a;
+    --ok: #6fd08c;
+    --warn-bg: #3b1b12;
+    --warn-fg: #ffbdac;
+    --warn-line: #c04824;
+    --rec: #ff6a56;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1820; --surface: #16232d; --fg: #e8eef3; --muted: #9fb0bd;
+  --line: #2b3b48; --accent: #52c4cc; --accent-ink: #04262a; --accent-soft: #14383d;
+  --gap-bg: #3a2e0c; --gap-fg: #ffd777; --gap-line: #c99a1a; --ok: #6fd08c;
+  --warn-bg: #3b1b12; --warn-fg: #ffbdac; --warn-line: #c04824; --rec: #ff6a56;
+  color-scheme: dark;
+}
+
+body { background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 16px; line-height: 1.5; padding-inline: 16px; padding-block: 28px 48px; }
+* { box-sizing: border-box; }
+.wrap { max-width: 880px; margin-inline: auto; display: grid; gap: 24px; }
+h1 { font-size: 2rem; line-height: 1.15; margin: 0 0 8px; text-wrap: balance; }
+.lede { margin: 0; max-width: 62ch; color: var(--muted); }
+.notice { background: var(--warn-bg); color: var(--warn-fg); border: 1px solid var(--warn-line); border-radius: 12px; padding: 12px 14px; font-size: 0.9375rem; }
+.notice b { font-weight: 700; }
+.stage { display: grid; grid-template-columns: minmax(0, 400px) minmax(0, 1fr); gap: 32px; align-items: start; }
+@media (max-width: 760px) { .stage { grid-template-columns: minmax(0, 1fr); } }
+
+.device { background: var(--surface); border: 1px solid var(--line); border-radius: 28px; padding: 20px; min-height: 580px; display: flex; flex-direction: column; gap: 16px; }
+.device-bar { display: flex; justify-content: space-between; align-items: center; font-size: 0.8125rem; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; }
+.screen { display: flex; flex-direction: column; gap: 16px; flex: 1; min-width: 0; }
+.screen h2 { font-size: 1.25rem; line-height: 1.25; margin: 0; text-wrap: balance; }
+.screen h2:focus { outline: none; }
+.small { font-size: 0.875rem; color: var(--muted); margin: 0; }
+.err { color: var(--warn-fg); background: var(--warn-bg); border: 1px solid var(--warn-line); border-radius: 10px; padding: 10px 12px; font-size: 0.9375rem; margin: 0; }
+
+.transcript { font-size: 1.25rem; line-height: 1.7; margin: 0; overflow-wrap: anywhere; min-height: 2em; }
+.gapchip { display: inline-block; padding: 0 10px; border-radius: 8px; background: var(--gap-bg); color: var(--gap-fg); border: 2px dashed var(--gap-line); font-weight: 700; }
+.picked { border-bottom: 3px solid var(--accent); font-weight: 700; }
+.interim { color: var(--muted); font-style: italic; }
+
+.facts { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.facts li { display: flex; gap: 10px; align-items: baseline; padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; }
+.facts .k { color: var(--muted); font-size: 0.875rem; min-width: 76px; }
+.facts .v { font-weight: 700; flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.facts li.need { background: var(--gap-bg); border-color: var(--gap-line); color: var(--gap-fg); }
+.facts li.need .k { color: inherit; }
+.mark { font-size: 0.8125rem; font-weight: 700; }
+.facts li:not(.need) .mark { color: var(--ok); }
+
+.opts { display: grid; gap: 10px; }
+.btn { position: relative; overflow: hidden; text-align: left; font: inherit; color: var(--fg); background: var(--surface); border: 2px solid var(--line); border-radius: 14px; padding: 12px 14px; min-height: 56px; cursor: pointer; }
+.btn:hover { border-color: var(--accent); }
+.btn:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.btn .row { position: relative; z-index: 1; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.btn .label { font-weight: 700; font-size: 1.125rem; overflow-wrap: anywhere; }
+.btn .conf { font-family: var(--font-data); font-size: 0.8125rem; color: var(--muted); white-space: nowrap; }
+.btn .meter { position: relative; z-index: 1; height: 4px; border-radius: 2px; background: var(--line); margin-top: 8px; }
+.btn .meter i { display: block; height: 100%; border-radius: 2px; background: var(--accent); }
+.tag { font-size: 0.75rem; font-weight: 700; background: var(--accent-soft); color: var(--accent); padding: 1px 8px; border-radius: 99px; margin-left: 8px; vertical-align: middle; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); text-align: center; }
+.btn.primary .label { width: 100%; text-align: center; }
+.btn.quiet { border-style: dashed; min-height: 48px; }
+.btn .dwell-fill { position: absolute; inset: 0; background: var(--accent); opacity: 0.2; transform: scaleX(0); transform-origin: left; z-index: 0; pointer-events: none; }
+.btn.primary .dwell-fill { background: var(--accent-ink); opacity: 0.25; }
+.btn.run .dwell-fill { animation: dwell 1.4s linear forwards; }
+@keyframes dwell { to { transform: scaleX(1); } }
+.btnrow { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+.micwrap { display: flex; flex-direction: column; align-items: center; gap: 10px; margin-block: 8px; }
+.mic { width: 112px; height: 112px; border-radius: 50%; border: none; background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; cursor: pointer; position: relative; }
+.mic:focus-visible { outline: 3px solid var(--accent); outline-offset: 4px; }
+.mic svg { width: 44px; height: 44px; }
+.mic.rec { background: var(--rec); animation: pulseRing 1.4s ease-out infinite; }
+.mic.rec::after { content: ""; position: absolute; inset: -8px; border-radius: 50%; border: 3px solid var(--rec); opacity: 0; animation: ring 1.4s ease-out infinite; }
+@keyframes ring { 0% { opacity: 0.7; transform: scale(0.95); } 100% { opacity: 0; transform: scale(1.25); } }
+@keyframes pulseRing { 50% { filter: brightness(1.15); } }
+.mic:disabled { opacity: 0.5; cursor: not-allowed; }
+.mic-caption { font-size: 0.9375rem; color: var(--muted); text-align: center; max-width: 24ch; }
+
+.wave { display: flex; align-items: center; justify-content: center; gap: 4px; height: 48px; }
+.wave i { width: 5px; border-radius: 3px; background: var(--accent); height: 12px; animation: bob 0.9s ease-in-out infinite; animation-delay: calc(var(--i) * -0.07s); }
+@keyframes bob { 0%, 100% { height: 10px; } 50% { height: 40px; } }
+@media (prefers-reduced-motion: reduce) {
+  .wave i { animation: none; height: 24px; }
+  .mic.rec { animation: none; }
+  .mic.rec::after { animation: none; opacity: 0.5; }
+}
+
+.done-mark { width: 56px; height: 56px; border-radius: 50%; background: var(--ok); color: var(--surface); display: grid; place-items: center; }
+.done-mark svg { width: 30px; height: 30px; }
+.result { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
+.result b { display: block; font-size: 1.125rem; overflow-wrap: anywhere; }
+.tally { font-family: var(--font-data); font-size: 0.8125rem; color: var(--muted); margin: 0; }
+.field { display: grid; gap: 6px; }
+.field label { font-size: 0.875rem; color: var(--muted); }
+.field input { font: inherit; padding: 12px; border: 2px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--fg); min-width: 0; }
+.field input:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+details { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+details[open] { padding-bottom: 12px; }
+summary { cursor: pointer; font-size: 0.875rem; color: var(--muted); }
+.fallback { display: grid; gap: 10px; margin-top: 10px; }
+.fallback .entry { display: flex; gap: 8px; }
+.fallback input { flex: 1; min-width: 0; font: inherit; padding: 10px 12px; border: 2px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--fg); }
+.fallback button { font: inherit; font-weight: 700; padding: 10px 14px; border: 2px solid var(--accent); background: var(--accent); color: var(--accent-ink); border-radius: 10px; cursor: pointer; }
+
+.panel { display: grid; gap: 20px; min-width: 0; }
+.panel h3 { margin: 0 0 8px; font-size: 0.8125rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.panel p { margin: 0; color: var(--muted); max-width: 52ch; }
+.panel ol { margin: 0; padding-left: 1.2em; color: var(--muted); display: grid; gap: 6px; max-width: 52ch; }
+.seg { display: flex; flex-wrap: wrap; gap: 8px; border: 0; margin: 0; padding: 0; min-width: 0; }
+.seg label { cursor: pointer; }
+.seg input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.seg span { display: inline-block; padding: 8px 14px; border: 2px solid var(--line); border-radius: 99px; font-weight: 700; }
+.seg input:checked + span { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.seg input:focus-visible + span { outline: 3px solid var(--accent); outline-offset: 2px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* Tabs */
+.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin-bottom: 4px; flex-wrap: wrap; }
+.tab-btn { padding: 10px 20px; font: inherit; font-weight: 700; font-size: 0.9375rem; border: none; background: transparent; color: var(--muted); cursor: pointer; border-bottom: 3px solid transparent; margin-bottom: -1px; letter-spacing: 0.02em; }
+.tab-btn:hover { color: var(--fg); }
+.tab-btn[aria-selected="true"] { color: var(--fg); border-bottom-color: var(--accent); }
+.tab-btn:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+
+/* Essay */
+.essay { max-width: 68ch; margin-inline: auto; }
+.essay h1 { font-size: 1.75rem; line-height: 1.2; margin: 8px 0 24px; text-wrap: balance; }
+.essay h2 { font-size: 1.0625rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin: 36px 0 14px; }
+.essay p { margin: 0 0 18px; font-size: 1.0625rem; line-height: 1.7; }
+.ai-note { border-top: 1px solid var(--line); padding-top: 20px; margin-top: 36px; }
+.ai-note p { font-size: 1rem; }
+.ai-note ul { margin: 10px 0 20px; padding-left: 1.4em; display: grid; gap: 8px; }
+.ai-note li { font-size: 1rem; line-height: 1.55; color: var(--fg); font-style: italic; }
+
+/* Tappable words inside the transcript */
+.transcript { line-height: 1.9; }
+.transcript .word { font: inherit; color: var(--fg); background: transparent; border: 0; padding: 2px 4px; margin: 0 -2px; cursor: pointer; border-bottom: 2px dotted var(--line); border-radius: 4px; }
+.transcript .word:hover, .transcript .word:focus-visible { border-bottom: 2px solid var(--accent); color: var(--accent); outline: none; background: var(--accent-soft); }
+.transcript .word.picked { border-bottom: 3px solid var(--accent); font-weight: 700; color: var(--fg); background: transparent; }
+.transcript .word.picked:hover, .transcript .word.picked:focus-visible { color: var(--accent); background: var(--accent-soft); }
+</style>
+
+<main class="wrap">
+  <nav class="tabs" role="tablist" aria-label="Sections">
+    <button type="button" role="tab" class="tab-btn" data-tab="written" id="tabBtnWritten" aria-controls="tab-written" aria-selected="true">Written response</button>
+    <button type="button" role="tab" class="tab-btn" data-tab="prototype" id="tabBtnPrototype" aria-controls="tab-prototype" aria-selected="false" tabindex="-1">Prototype</button>
+  </nav>
+
+  <section id="tab-written" role="tabpanel" aria-labelledby="tabBtnWritten" class="essay">
+    <h1>AS3 &mdash; Voice Applications</h1>
+
+    <p>There are many voice-based technologies on the market, such as Amazon Echo (Alexa), Siri, and Google Home. These tools are super convenient for the average everyday user, but they can also help promote accessibility for some disabled individuals, such as people who are visually impaired or have motor disabilities that make it difficult to type or interact with a smart system in the same way someone traditionally would on a laptop or cell phone. However, these tools may be challenging or inaccessible for certain disability demographics. One example is people who are non-speaking or unable to speak, as well as people with progressive neurological conditions that can cause them to lose their ability to speak over time, such as ALS. Since these individuals may not be able to speak to the device, traditional voice interfaces can be difficult for them to use. Additionally, people who are Deaf or hard of hearing may have difficulty interacting with these interfaces because they may be unable to hear the response. Some people who are Deaf or hard of hearing may also have speech differences, such as differences in pronunciation, speech patterns, or accents, that can make it harder for these devices to accurately understand them. People who stutter can also have difficulty with voice assistants, which often treat a pause or repeated sound as the end of a command and cut the user off before they finish. In addition to these more apparent challenges, people with less apparent disabilities, such as cognitive disabilities, ADHD, or memory-related conditions, may also face barriers when using voice interfaces, since the lack of a visual record can make it difficult to follow a longer command or recall what was said earlier in the interaction.</p>
+
+    <p>There are already some existing solutions that help address these challenges, particularly for people who are hard of hearing or cannot speak for various reasons. One example is the ability to type commands instead of speaking them. Siri and other voice assistant platforms offer accessibility settings that allow users to type their commands, providing another way to interact with the system without having to speak. Additionally, Siri and other voice assistants can display a transcription of what the system believes the user said on the screen. This provides another outlet beyond relying solely on voice and hearing. For example, someone with a cognitive disability, ADHD, or a memory-related difficulty may benefit from seeing their prompt written on the screen so they can confirm what they said or better keep track of the interaction. Finally, some voice assistants use voice recognition training to better understand an individual&rsquo;s speech. Users may be asked to repeat a series of prompts so the system can become more familiar with their particular voice, pronunciation, speech patterns, and accent. These features can help improve recognition for people whose speech may differ from the speech patterns that voice recognition systems are typically trained on.</p>
+
+    <p>One prototype solution that I had in mind is a tool designed to help individuals who have difficulty speaking and may not be properly understood by voice-based technologies. Despite existing options, such as Siri&rsquo;s ability to learn and better recognize atypical speech, understanding can still be a major barrier for individuals with certain disabilities. Oftentimes, when a voice assistant does not understand a command, the user is simply asked to repeat themselves, which can be frustrating and especially difficult for someone who has trouble speaking. Instead, this tool would use AI-powered voice recognition to transcribe the parts of the user&rsquo;s command that it is able to understand and provide a few possible options for any unclear information that the user can select from. For example, if a user says, &ldquo;Hey Siri, can you send me a reminder for the dentist for 3 p.m. on Tuesday?&rdquo; and the system is unsure about one part of the command, rather than responding with &ldquo;I&rsquo;m sorry, I didn&rsquo;t catch that,&rdquo; it could display the information it understood and provide selectable options for the unclear portion. The user could then confirm or correct the command without having to speak again. If any other part of the transcription was misheard, the user could also tap that word to open the same selection process for it, so no portion of the command is locked in without the user&rsquo;s confirmation. The prototype below shows how this selection process could work after a user speaks a command. This concept could also be further enhanced for people with motor disabilities who may not be able to tap or select an option with their fingers. For example, the system could eventually support eye-tracking or other alternative input methods for users with limited motor control. Additional enhancements could also incorporate AI-based lip reading to help interpret a user&rsquo;s intended command and provide options that the user can then choose to confirm, creating additional pathways for accessible interaction. Claude Code was used to build out the prototype and demonstrate how the selection and confirmation process could work.</p>
+
+    <div class="ai-note">
+      <h2>AI Tools and Prompts Used</h2>
+      <p>ChatGPT (GPT-5.6 Luna) was used to improve sentence structure, organization, grammar, and clarity while preserving the original ideas and wording from my draft. Prompts included:</p>
+      <ul>
+        <li>&ldquo;Clean this up for me while keeping my original ideas and wording.&rdquo;</li>
+        <li>&ldquo;Combine this into three paragraphs, with the challenges, existing solutions, and potential solution/prototype as separate paragraphs.&rdquo;</li>
+        <li>&ldquo;Make the language more polished and appropriate for an academic assignment without changing the main ideas.&rdquo;</li>
+      </ul>
+      <p>Claude Code was used to build the interactive prototype demonstrating the voice-command transcription, selectable options for unclear information, and confirmation process. The written description above was used along with the following prompts:</p>
+      <ul>
+        <li>&ldquo;Build an interactive prototype of an accessible voice assistant that transcribes a user&rsquo;s voice command and provides selectable options when part of the command is unclear.&rdquo;</li>
+        <li>&ldquo;Create an interaction where the user can select the correct option and confirm the command without having to repeat the entire voice command.&rdquo;</li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="tab-prototype" role="tabpanel" aria-labelledby="tabBtnPrototype" hidden>
+    <header>
+      <h1>Finish My Sentence</h1>
+      <p class="lede">The prototype described in the written response. Press the microphone, speak any short command, and the assistant transcribes what it understood while offering selectable options for any unclear part so the command does not have to be repeated.</p>
+    </header>
+
+    <div class="stage" style="margin-top: 24px">
+      <section class="device" aria-label="Assistant screen">
+        <div class="device-bar"><span>Assistant</span><span>Voice command</span></div>
+        <div class="screen" id="screen" aria-live="polite"></div>
+      </section>
+
+      <aside class="panel">
+        <div>
+          <h3>What to try</h3>
+          <ol>
+            <li>Press the microphone and allow access when your browser asks.</li>
+            <li>Say any short command: a reminder, a call, a message, a timer, lights, directions.</li>
+            <li>The assistant shows what it heard and flags one unclear part.</li>
+            <li>Tap the right option, then confirm. You never speak the whole thing again.</li>
+          </ol>
+        </div>
+        <div>
+          <h3>How the unclear part is picked</h3>
+          <p>The browser&rsquo;s recognizer returns a top guess and a couple of alternatives. The first word that differs between them is the unclear part, and the alternatives become the options. If the speech comes through cleanly, the assistant still flags one word (a name, day, number or time) so you can confirm before anything runs.</p>
+        </div>
+      </aside>
+    </div>
+  </section>
+</main>
+
+<script>
+(function () {
+  var tabs = document.querySelectorAll('[role="tab"]');
+  var panels = { written: document.getElementById('tab-written'), prototype: document.getElementById('tab-prototype') };
+  function setTab(name) {
+    if (!panels[name]) name = 'written';
+    for (var k in panels) panels[k].hidden = (k !== name);
+    tabs.forEach(function (t) {
+      var sel = t.getAttribute('data-tab') === name;
+      t.setAttribute('aria-selected', sel ? 'true' : 'false');
+      t.tabIndex = sel ? 0 : -1;
+    });
+    try { if (location.hash.replace('#', '') !== name) history.replaceState(null, '', '#' + name); } catch (e) {}
+    window.scrollTo({ top: 0, behavior: 'auto' });
+  }
+  tabs.forEach(function (t) {
+    t.addEventListener('click', function () { setTab(t.getAttribute('data-tab')); });
+    t.addEventListener('keydown', function (e) {
+      if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+      e.preventDefault();
+      var list = Array.prototype.slice.call(tabs);
+      var i = list.indexOf(t);
+      var n = e.key === 'ArrowRight' ? (i + 1) % list.length : (i - 1 + list.length) % list.length;
+      list[n].focus();
+      setTab(list[n].getAttribute('data-tab'));
+    });
+  });
+  var h = (location.hash || '').replace('#', '');
+  setTab(h === 'prototype' ? 'prototype' : 'written');
+})();
+</script>
+
+<script>
+(function () {
+  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+  var DAYS = { monday: ['Sunday', 'Friday'], tuesday: ['Thursday', 'Today'], wednesday: ['Tuesday', 'Thursday'], thursday: ['Tuesday', 'Today'], friday: ['Monday', 'Sunday'], saturday: ['Sunday', 'Thursday'], sunday: ['Monday', 'Saturday'], today: ['Tuesday', 'Tomorrow'], tomorrow: ['Today', 'Monday'], tonight: ['Tomorrow', 'Today'] };
+  var SWAP = { b: 'p', p: 'b', d: 't', t: 'd', m: 'n', n: 'm', k: 'g', g: 'k', s: 'z', z: 's', f: 'v', v: 'f', l: 'r', r: 'l', c: 'k', h: 'w', w: 'h' };
+  var VOWEL = { a: 'e', e: 'i', i: 'a', o: 'u', u: 'o' };
+  var NAME_STOP = ['Siri', 'Alexa', 'Google', 'Hey', 'The', 'My', 'Me', 'Please', 'Can', 'Could', 'Will', 'Would', 'OK', 'Ok', 'Okay'];
+
+  var S = { step: 'idle', p: null, interim: '', err: '', other: false, run: 0, rec: null };
+  var screen = document.getElementById('screen');
+
+  var ICON_MIC = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>';
+  var ICON_STOP = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>';
+  var ICON_CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg>';
+
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]; }); }
+  function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+  function uniq(list, not) { var seen = {}; seen[(not || '').toLowerCase()] = 1; var out = []; list.forEach(function (x) { var k = String(x).toLowerCase(); if (k && !seen[k]) { seen[k] = 1; out.push(String(x)); } }); return out; }
+
+  function tokenize(text) {
+    var raw = text.trim().replace(/^(hey|ok|okay)\s+(siri|google|alexa)[,\s]*/i, '').replace(/[.?!,]+$/, '');
+    var w = raw.split(/\s+/).filter(Boolean).map(function (x) { return x.replace(/[,.?!]+$/, ''); });
+    var out = [];
+    for (var i = 0; i < w.length; i++) {
+      if (/^\d{1,2}(:\d{2})?$/.test(w[i]) && w[i + 1] && /^[ap]\.?m\.?$/i.test(w[i + 1])) { out.push(w[i] + ' ' + w[i + 1]); i++; }
+      else out.push(w[i]);
+    }
+    return out;
+  }
+  var isDay = function (t) { return !!DAYS[t.toLowerCase()]; };
+  var isTime = function (t) { return /^\d{1,2}(:\d{2})?\s*[ap]\.?m\.?$/i.test(t) || /^\d{1,2}:\d{2}$/.test(t); };
+  var isNum = function (t) { return /^\d+(\.\d+)?%?$/.test(t); };
+  var isName = function (t, i) { return i > 0 && /^[A-Z][a-z]+$/.test(t) && !isDay(t) && NAME_STOP.indexOf(t) < 0; };
+
+  function altsDay(w) { return DAYS[w.toLowerCase()].slice(); }
+  function altsNum(w) {
+    var pct = /%$/.test(w) ? '%' : '', n = parseInt(w, 10), a;
+    if (n === 20) a = [12, 30];
+    else if (n === 12) a = [20, 13];
+    else if (n >= 13 && n <= 19) a = [(n - 10) * 10, n + 1];
+    else if (n >= 30 && n <= 90 && n % 10 === 0) a = [n / 10 + 10, n + 10];
+    else a = [n + 10, n > 1 ? n - 1 : n + 1];
+    return a.map(function (x) { return x + pct; });
+  }
+  function altsTime(w) {
+    var m = w.match(/^(\d{1,2})(?::(\d{2}))?\s*(?:([ap])\.?m\.?)?$/i), h = +m[1], min = m[2], ap = m[3] ? m[3].toLowerCase() : '', dots = /\./.test(w);
+    function f(hh, mm, a) { return hh + (mm ? ':' + mm : '') + (a ? ' ' + a + (dots ? '.m.' : 'm') : ''); }
+    var next = h % 12 + 1;
+    if (ap) return [f(h, min, ap === 'p' ? 'a' : 'p'), f(next, min, ap)];
+    return [f(h, '30', ''), f(next, min, '')];
+  }
+  function altsName(w) {
+    var k = w.toLowerCase(), a = [], f = k.charAt(0);
+    if (SWAP[f]) a.push(cap(SWAP[f] + k.slice(1)));
+    var mm = k.match(/[aeiou]/);
+    if (mm) a.push(cap(k.replace(mm[0], VOWEL[mm[0]])));
+    a.push(cap(k.slice(0, -1) + (/y$/.test(k) ? 'ie' : 'y')));
+    return a;
+  }
+  function altsWord(w) {
+    var k = w.toLowerCase(), a = [];
+    if (SWAP[k.charAt(0)]) a.push(SWAP[k.charAt(0)] + k.slice(1));
+    var mm = k.match(/[aeiou]/);
+    if (mm) a.push(k.replace(mm[0], VOWEL[mm[0]]));
+    a.push(k + 's');
+    return /^[A-Z]/.test(w) ? a.map(cap) : a;
+  }
+
+  function intent(low) {
+    var rules = [
+      [/remind/, 'Create a reminder', 'Reminder set'],
+      [/timer/, 'Start a timer', 'Timer started'],
+      [/alarm|wake/, 'Set an alarm', 'Alarm set'],
+      [/\b(call|phone|dial|ring)\b/, 'Place a call', 'Calling'],
+      [/\b(text|message|tell|send)\b/, 'Send a message', 'Message sent'],
+      [/light|lamp|brightness|dim\b/, 'Set brightness', 'Lights changed'],
+      [/\bplay\b/, 'Play audio', 'Playing'],
+      [/weather|forecast|temperature/, 'Check the weather', 'Weather shown'],
+      [/direction|navigate|route|take me/, 'Get directions', 'Directions started']
+    ];
+    for (var i = 0; i < rules.length; i++) if (rules[i][0].test(low)) return { action: rules[i][1], headline: rules[i][2] };
+    return { action: 'Run your command', headline: 'Done' };
+  }
+  function numLabel(next) {
+    if (/percent|%/.test(next)) return 'Level';
+    if (/minute|second|hour/.test(next)) return 'Length';
+    if (/degree/.test(next)) return 'Temperature';
+    return 'Number';
+  }
+  function slotLabel(type, low) {
+    if (type === 'day') return 'Day';
+    if (type === 'time') return 'Time';
+    if (type === 'num') return 'Number';
+    if (type === 'name') return /call|phone|dial|text|message|tell|send|ring/.test(low) ? 'Contact' : 'Name';
+    return 'Word';
+  }
+
+  /* Build the slot picture from the top transcript, choosing which word to flag. */
+  function build(top, altsList) {
+    if (!top || !top.trim()) return null;
+    var tokens = tokenize(top);
+    if (!tokens.length) return null;
+    var low = tokens.join(' ').toLowerCase(), it = intent(low);
+
+    /* First, check if alternatives from the recognizer actually differ. */
+    var fromAlts = null;
+    if (altsList && altsList.length > 1) {
+      var topLow = tokens.map(function (t) { return t.toLowerCase(); });
+      for (var a = 1; a < altsList.length && !fromAlts; a++) {
+        var other = tokenize(altsList[a]);
+        if (!other.length) continue;
+        if (Math.abs(other.length - tokens.length) > 1) continue;
+        for (var i = 0; i < tokens.length; i++) {
+          var ot = (other[i] || '').toLowerCase();
+          if (ot && ot !== topLow[i]) {
+            var choices = [tokens[i]];
+            for (var b = 1; b < altsList.length; b++) {
+              var o2 = tokenize(altsList[b]);
+              if (o2[i] && o2[i].toLowerCase() !== topLow[i]) choices.push(o2[i]);
+            }
+            fromAlts = { idx: i, correct: tokens[i], alts: uniq(choices.slice(1), tokens[i]) };
+            break;
+          }
+        }
+      }
+    }
+
+    var idx, type, correct, alts;
+    if (fromAlts && fromAlts.alts.length) {
+      idx = fromAlts.idx; correct = fromAlts.correct; alts = fromAlts.alts;
+      if (isDay(correct)) type = 'day';
+      else if (isTime(correct)) type = 'time';
+      else if (isNum(correct)) type = 'num';
+      else if (isName(correct, idx)) type = 'name';
+      else type = 'word';
+    } else {
+      idx = -1;
+      var order = [['name', isName], ['day', isDay], ['num', function (t) { return isNum(t) && !isTime(t); }], ['time', isTime]];
+      for (var o = 0; o < order.length && idx < 0; o++) for (var k = 0; k < tokens.length; k++) if (order[o][1](tokens[k], k)) { idx = k; type = order[o][0]; break; }
+      if (idx < 0) {
+        idx = tokens.length - 1;
+        for (var j = tokens.length - 1; j > 0; j--) if (tokens[j].length > 3 && NAME_STOP.indexOf(cap(tokens[j].toLowerCase())) < 0) { idx = j; break; }
+        type = 'word';
+      }
+      if (idx === 0 && tokens.length > 1) idx = tokens.length - 1;
+      correct = tokens[idx];
+      if (type === 'day') alts = altsDay(correct);
+      else if (type === 'time') alts = altsTime(correct);
+      else if (type === 'num') alts = altsNum(correct);
+      else if (type === 'name') alts = altsName(correct);
+      else alts = altsWord(correct);
+      alts = uniq(alts, correct);
+    }
+
+    while (alts.length < 2) alts.push(correct + (alts.length ? 'er' : 's'));
+    alts = alts.slice(0, 2);
+    var list = [correct].concat(alts);
+    /* Put the real word second sometimes, so top guess is not always right. */
+    if ((correct.length + idx) % 3 === 0) { var tmp = list[0]; list[0] = list[1]; list[1] = tmp; }
+    var conf = fromAlts ? [62, 29, 9] : [58, 29, 13];
+    var options = list.map(function (l, kk) { return [l, conf[kk]]; });
+
+    var facts = [['Action', it.action]];
+    tokens.forEach(function (t, kk) {
+      if (kk === idx) return;
+      if (isDay(t)) facts.push(['Day', cap(t.toLowerCase())]);
+      else if (isTime(t)) facts.push(['Time', t]);
+      else if (isName(t, kk)) facts.push([/call|phone|dial|text|message|tell|send|ring/.test(low) ? 'Contact' : 'Name', t]);
+      else if (isNum(t)) { var nx = (tokens[kk + 1] || ''); facts.push([numLabel(nx.toLowerCase()), t + (nx ? ' ' + nx : '')]); }
+    });
+    var ab = low.match(/\b(?:about|to)\s+(?:the\s+|a\s+|my\s+)?(.+?)(?:\s+(?:at|on|by|for|tomorrow|today)\b|$)/);
+    if (it.action === 'Create a reminder' && ab && ab[1] && ab[1].indexOf(correct.toLowerCase()) < 0 && facts.length < 5) facts.splice(1, 0, ['About', cap(ab[1])]);
+    facts = facts.slice(0, 5);
+
+    if (tokens[0]) tokens[0] = cap(tokens[0]);
+    return { tokens: tokens, original: tokens.slice(), gap: idx, slot: slotLabel(type, low), facts: facts, options: options, headline: it.headline };
+  }
+
+  /* Refocus the clarification on a different word, regenerating its options and slot label. */
+  function refocus(index) {
+    if (!S.p || index < 0 || index >= S.p.tokens.length) return;
+    var tokens = S.p.tokens, word = tokens[index], low = tokens.join(' ').toLowerCase(), type;
+    if (!word) return;
+    if (isDay(word)) type = 'day';
+    else if (isTime(word)) type = 'time';
+    else if (isNum(word)) type = 'num';
+    else if (isName(word, index)) type = 'name';
+    else type = 'word';
+    var alts;
+    if (type === 'day') alts = altsDay(word);
+    else if (type === 'time') alts = altsTime(word);
+    else if (type === 'num') alts = altsNum(word);
+    else if (type === 'name') alts = altsName(word);
+    else alts = altsWord(word);
+    alts = uniq(alts, word).slice(0, 2);
+    while (alts.length < 2) alts.push(word + (alts.length ? 'er' : 's'));
+    var list = [word].concat(alts);
+    var conf = [62, 29, 9];
+    S.p.gap = index;
+    S.p.slot = slotLabel(type, low);
+    S.p.options = list.map(function (l, k) { return [l, conf[k]]; });
+  }
+
+  function sentenceHTML(mode) {
+    var t = S.p.tokens, orig = S.p.original, gap = S.p.gap, out = [];
+    for (var i = 0; i < t.length; i++) {
+      if (mode === 'clarify' && i === gap) {
+        out.push('<span class="gapchip">' + esc(S.p.slot) + ' ?</span>');
+      } else {
+        var changed = t[i] !== orig[i];
+        out.push('<button type="button" class="word' + (changed ? ' picked' : '') + '" data-act="word" data-i="' + i + '">' + esc(t[i]) + '</button>');
+      }
+    }
+    return out.join(' ');
+  }
+  function plainSentence() { return S.p.tokens.join(' '); }
+
+  function btn(act, inner, cls, extra) {
+    return '<button type="button" class="btn ' + (cls || '') + '" data-act="' + act + '" ' + (extra || '') + '>' + inner + '</button>';
+  }
+
+  function fallbackBlock() {
+    return '<details><summary>Microphone not working? Type instead.</summary>' +
+      '<form class="fallback" id="typedForm"><div class="entry"><input id="typedCmd" type="text" autocomplete="off" placeholder="Remind me about the dentist at 3 p.m. Tuesday"><button type="submit">Use this</button></div></form></details>';
+  }
+
+  function view() {
+    if (S.step === 'idle') {
+      return '<h2 tabindex="-1" data-focus>What would you like to do?</h2>' +
+        '<div class="micwrap"><button type="button" class="mic" data-act="speak" aria-label="Press to speak">' + ICON_MIC + '</button>' +
+        '<p class="mic-caption">Press, then say your command.</p></div>' +
+        (S.err ? '<p class="err">' + esc(S.err) + '</p>' : '') +
+        fallbackBlock();
+    }
+    if (S.step === 'listening') {
+      var bars = ''; for (var i = 0; i < 24; i++) bars += '<i style="--i:' + i + '"></i>';
+      return '<h2>Listening</h2>' +
+        '<div class="micwrap"><button type="button" class="mic rec" data-act="stop" aria-label="Stop listening">' + ICON_STOP + '</button><p class="mic-caption">Tap to stop early.</p></div>' +
+        '<div class="wave" aria-hidden="true">' + bars + '</div>' +
+        '<p class="transcript"><span class="interim">' + (esc(S.interim) || '&hellip;') + '</span></p>';
+    }
+    if (S.step === 'clarify') {
+      var p = S.p;
+      var opts = p.options.map(function (o, i) {
+        return btn('pick', '<span class="row"><span class="label">' + esc(o[0]) + (i === 0 ? '<span class="tag">Best guess</span>' : '') + '</span><span class="conf">' + o[1] + '%</span></span><span class="meter" aria-hidden="true"><i style="width:' + o[1] + '%"></i></span>', '', 'data-i="' + i + '"');
+      }).join('');
+      var other = S.other
+        ? '<form class="field" id="otherForm"><label for="otherInput">Type the ' + esc(p.slot.toLowerCase()) + '</label><input id="otherInput" type="text" autocomplete="off"><div class="btnrow"><button type="submit" class="btn primary"><span class="label">Use this</span></button><button type="button" class="btn" data-act="cancelother"><span class="label">Back</span></button></div></form>'
+        : btn('other', '<span class="row"><span class="label">None of these</span></span>', 'quiet');
+      return '<h2 tabindex="-1" data-focus>Here is what I heard.</h2>' +
+        '<p class="transcript">' + sentenceHTML('clarify') + '</p>' +
+        '<p class="small">Pick the right ' + esc(p.slot.toLowerCase()) + ' below, or tap any other word to change it.</p>' +
+        '<div class="opts">' + opts + other + '</div>' +
+        btn('looksright', '<span class="row"><span class="label">Looks right as is</span></span>', 'quiet');
+    }
+    if (S.step === 'confirm') {
+      return '<h2 tabindex="-1" data-focus>Is this right?</h2>' +
+        '<p class="transcript">' + sentenceHTML('confirm') + '</p>' +
+        '<p class="small">Tap any word to change it, or confirm to run the command.</p>' +
+        '<div class="btnrow">' + btn('change', '<span class="row"><span class="label">Change</span></span>') + btn('confirm', '<span class="row"><span class="label">Confirm</span></span>', 'primary') + '</div>';
+    }
+    return '<div class="done-mark">' + ICON_CHECK + '</div><h2 tabindex="-1" data-focus>' + esc(S.p.headline) + '</h2>' +
+      '<div class="result"><b>' + esc(plainSentence()) + '</b></div>' +
+      '<p class="tally">Said once. Corrected without repeating.</p>' +
+      btn('restart', '<span class="row"><span class="label">Try another command</span></span>', 'quiet');
+  }
+
+  function render(focus) {
+    screen.innerHTML = view();
+    if (focus) { var f = screen.querySelector('[data-focus]'); if (f) f.focus({ preventScroll: true }); }
+  }
+
+  function toClarify(top, alts) {
+    var p = build(top, alts);
+    if (!p) { S.err = 'I did not hear a command. Try again.'; S.step = 'idle'; render(true); return; }
+    S.p = p; S.other = false; S.step = 'clarify'; render(true);
+  }
+
+  function startVoice() {
+    if (!SR) { S.err = 'This browser does not support speech recognition. Try Chrome, Edge or Safari.'; render(false); return; }
+    var r = new SR();
+    r.lang = 'en-US';
+    r.interimResults = true;
+    r.maxAlternatives = 3;
+    r.continuous = false;
+    S.rec = r; S.err = ''; S.interim = ''; S.step = 'listening';
+    var captured = null;
+    r.onresult = function (e) {
+      for (var i = e.resultIndex; i < e.results.length; i++) {
+        var res = e.results[i];
+        if (res.isFinal) {
+          var alts = [];
+          for (var k = 0; k < res.length; k++) alts.push(res[k].transcript.trim());
+          captured = { top: alts[0], alts: alts };
+        } else {
+          S.interim = res[0].transcript;
+          if (S.step === 'listening') render(false);
+        }
+      }
+    };
+    r.onerror = function (e) {
+      S.rec = null;
+      if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
+        S.err = 'Microphone access was blocked. Allow it in your browser, or download this page and open it locally. Meanwhile, you can type below.';
+      } else if (e.error === 'no-speech') { S.err = 'I did not hear anything. Try again.'; }
+      else if (e.error === 'audio-capture') { S.err = 'No microphone found on this device.'; }
+      else if (e.error === 'network') { S.err = 'Speech recognition could not reach the network.'; }
+      else { S.err = 'Could not listen (' + e.error + '). You can type below.'; }
+      S.step = 'idle'; render(true);
+    };
+    r.onend = function () {
+      S.rec = null;
+      if (captured && captured.top) toClarify(captured.top, captured.alts);
+      else if (S.step === 'listening') { S.err = 'I did not catch that. Try again, or type below.'; S.step = 'idle'; render(true); }
+    };
+    render(false);
+    try { r.start(); }
+    catch (err) { S.err = 'Could not start the microphone. Try again.'; S.step = 'idle'; S.rec = null; render(true); }
+  }
+
+  function stopVoice() { if (S.rec) { try { S.rec.stop(); } catch (e) {} } }
+
+  function pick(label) { S.p.tokens[S.p.gap] = label; S.step = 'confirm'; S.other = false; render(true); }
+
+  screen.addEventListener('click', function (e) {
+    var el = e.target.closest('[data-act]'); if (!el) return;
+    var act = el.getAttribute('data-act');
+    if (act === 'speak') startVoice();
+    else if (act === 'stop') stopVoice();
+    else if (act === 'pick') pick(S.p.options[+el.getAttribute('data-i')][0]);
+    else if (act === 'word') { refocus(+el.getAttribute('data-i')); S.step = 'clarify'; S.other = false; render(true); }
+    else if (act === 'looksright') { S.step = 'confirm'; S.other = false; render(true); }
+    else if (act === 'other') { S.other = true; render(false); var i = document.getElementById('otherInput'); if (i) i.focus(); }
+    else if (act === 'cancelother') { S.other = false; render(true); }
+    else if (act === 'change') { S.step = 'clarify'; render(true); }
+    else if (act === 'confirm') { S.step = 'done'; render(true); }
+    else if (act === 'restart') { stopVoice(); S.run++; S.step = 'idle'; S.err = ''; render(true); }
+  });
+  screen.addEventListener('submit', function (e) {
+    e.preventDefault();
+    if (e.target.id === 'typedForm') {
+      var v = (document.getElementById('typedCmd').value || '').trim();
+      if (v) toClarify(v, [v]);
+    } else if (e.target.id === 'otherForm') {
+      var v2 = (document.getElementById('otherInput').value || '').trim();
+      if (v2) pick(v2);
+    }
+  });
+
+  render(false);
+})();
+</script>
+
+</body></html>
